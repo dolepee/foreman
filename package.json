@@ -1,0 +1,29 @@
+{
+  "name": "foreman",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Foreman is the OKX.AI launch contractor for agent builders.",
+  "scripts": {
+    "typecheck": "node --check api/*.js && node --check api/lib/*.js && node --check scripts/*.mjs && python3 -m py_compile scripts/render-card.py scripts/foreman_fast_responder.py",
+    "agent:verify": "node scripts/verify-agent-api.mjs",
+    "build": "node scripts/build-site.mjs",
+    "lint": "node scripts/lint.mjs",
+    "ffmpeg:check": "node scripts/check-ffmpeg.mjs",
+    "order:validate": "node scripts/validate-order.mjs data/orders/sample-order.json",
+    "shotlist:sample": "node scripts/generate-shotlist.mjs data/orders/sample-order.json data/deliveries/sample/shotlist.json",
+    "sample:render": "node scripts/render-demo.mjs data/deliveries/sample/shotlist.json",
+    "delivery:pack": "node scripts/generate-delivery-pack.mjs data/orders/sample-order.json data/deliveries/sample/shotlist.json",
+    "delivery:verify": "node scripts/verify-delivery.mjs data/deliveries/sample/receipt.json",
+    "proof:verify": "node scripts/verify-receipts.mjs",
+    "sample:all": "npm run ffmpeg:check && npm run order:validate && npm run shotlist:sample && npm run sample:render && npm run delivery:pack && npm run delivery:verify && npm run proof:verify && npm run build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@x402/core": "^2.17.0",
+    "@x402/evm": "^2.17.0",
+    "viem": "^2.55.0"
+  }
+}

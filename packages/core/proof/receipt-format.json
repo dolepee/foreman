@@ -1,0 +1,13 @@
+{
+  "required": [
+    "orderId",
+    "sku",
+    "paymentStatus",
+    "scopeHash",
+    "outputs",
+    "qa",
+    "warranty",
+    "createdAt"
+  ],
+  "notes": "Receipt hashes are SHA-256 hashes of generated local deliverables. OKX.AI order, escrow, review, reserve, and subcontract fields must remain absent or marked pending until real."
+}

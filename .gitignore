@@ -1,0 +1,27 @@
+.DS_Store
+.env
+.env.*
+node_modules/
+dist/
+.agents/
+.venv/
+
+# Customer and generated media stay local unless explicitly approved.
+data/deliveries/**
+data/receipts/**
+data/samples/raw/**
+data/samples/output/**
+!data/deliveries/.gitkeep
+!data/receipts/.gitkeep
+!data/samples/raw/.gitkeep
+!data/samples/output/.gitkeep
+
+# Private submission/recording material belongs outside the repo.
+DEMO_SCRIPT.md
+demo-script.*
+*-demo-script.*
+docs/DEMO_SCRIPT.md
+docs/*SUBMISSION*.md
+SUBMISSION_CHECKLIST.md
+submission-checklist.*
+.vercel

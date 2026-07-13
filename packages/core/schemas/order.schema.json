@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foreman.local/schemas/order.schema.json",
+  "title": "ForemanOrder",
+  "type": "object",
+  "required": [
+    "orderId",
+    "buyer",
+    "sku",
+    "priceUSDT",
+    "paymentStatus",
+    "project",
+    "deadline",
+    "deliverables",
+    "scope",
+    "warranty"
+  ],
+  "properties": {
+    "orderId": { "type": "string", "minLength": 3 },
+    "buyer": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "contact": { "type": "string" }
+      }
+    },
+    "sku": {
+      "type": "string",
+      "enum": ["demo_cut", "listing_audit", "launch_pack"]
+    },
+    "priceUSDT": { "type": "number", "minimum": 0 },
+    "paymentStatus": {
+      "type": "string",
+      "enum": ["sample_not_paid", "escrow_pending", "escrow_funded", "released", "refunded"]
+    },
+    "project": {
+      "type": "object",
+      "required": ["name", "category", "summary"],
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "summary": { "type": "string" },
+        "repoUrl": { "type": "string" },
+        "liveUrl": { "type": "string" }
+      }
+    },
+    "deadline": { "type": "string" },
+    "rawMaterials": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "deliverables": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "scope": { "type": "string" },
+    "revisionPolicy": { "type": "string" },
+    "warranty": { "type": "string" }
+  }
+}
