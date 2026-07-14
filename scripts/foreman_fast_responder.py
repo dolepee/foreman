@@ -30,6 +30,11 @@ AGENT_ID = "4348"
 AGENT_NAME = "Foreman"
 SERVICE_NAME = "Launch Readiness Pack"
 ENDPOINT = "https://foreman-nu-one.vercel.app/api/launch-readiness-pack"
+PLATFORM_REVIEW_AGENT_IDS = {
+    value.strip()
+    for value in os.environ.get("OKX_PLATFORM_REVIEW_AGENT_IDS", "1791").split(",")
+    if value.strip()
+}
 
 HOME = Path.home()
 TASK_HOME = Path(os.environ.get("OKX_AGENT_TASK_HOME", HOME / ".okx-agent-task"))
@@ -172,13 +177,67 @@ def fetch_full_content(job_id: str, to_agent_id: str, snippet: str) -> str:
 
 # --- deliverable generation -------------------------------------------------
 
-FIELD_RE = re.compile(r"([A-Za-z][A-Za-z ]{2,30}?)\s*=\s*'([^']*)'")
+FIELD_RE = re.compile(
+    r"(?:^|[\n;])\s*([A-Za-z][A-Za-z ]{1,40}?)\s*[:=]\s*['\"]?([^\n;]+?)['\"]?\s*(?=$|[\n;])",
+    re.M,
+)
 URL_RE = re.compile(r"https?://[^\s'\"」]+")
 DATE_RE = re.compile(r"(20\d{2}-\d{2}-\d{2})")
 
+FIELD_ALIASES = {
+    "projectname": "project",
+    "agentname": "project",
+    "productname": "project",
+    "project": "project",
+    "summary": "summary",
+    "description": "summary",
+    "whatitdoes": "summary",
+    "targetuser": "target audience",
+    "targetusers": "target audience",
+    "audience": "target audience",
+    "whoisitfor": "target audience",
+    "listingdraft": "listing draft",
+    "listingdescription": "listing draft",
+    "servicedescription": "listing draft",
+    "productlink": "product link",
+    "liveurl": "product link",
+    "livelisting": "product link",
+    "listingurl": "product link",
+    "notes": "project notes",
+    "secondopinion": "project notes",
+    "reviewrequest": "project notes",
+    "deadline": "deadline",
+    "submissiondeadline": "deadline",
+    "launchdeadline": "deadline",
+}
+
+
+def normalize_key(value: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", value.lower())
+
+
+def flatten_json(value, out: dict[str, str], depth: int = 0) -> None:
+    if depth > 3 or not isinstance(value, dict):
+        return
+    for key, child in value.items():
+        if isinstance(child, dict):
+            flatten_json(child, out, depth + 1)
+            continue
+        if isinstance(child, (str, int, float)):
+            canonical = FIELD_ALIASES.get(normalize_key(str(key)))
+            if canonical and str(child).strip() and canonical not in out:
+                out[canonical] = str(child).strip()
+
 
 def parse_fields(content: str) -> dict[str, str]:
-    fields = {k.strip().lower(): v.strip() for k, v in FIELD_RE.findall(content)}
+    fields: dict[str, str] = {}
+    try:
+        flatten_json(json.loads(content), fields)
+    except Exception:
+        pass
+    for key, value in FIELD_RE.findall(content):
+        canonical = FIELD_ALIASES.get(normalize_key(key), key.strip().lower())
+        fields.setdefault(canonical, value.strip().strip("'\""))
     if "product link" not in fields:
         url = URL_RE.search(content)
         if url:
@@ -199,11 +258,20 @@ def _receipt(job_id: str, body: str) -> str:
 
 def build_launch_pack(content: str, job_id: str) -> str:
     f = parse_fields(content)
-    project = f.get("listing draft") or f.get("project") or f.get("draft") or "your agent launch"
+    project = f.get("project") or f.get("agent name") or f.get("product name")
     link = f.get("product link") or f.get("live link") or ""
-    notes = f.get("project notes") or ""
+    notes = f.get("project notes") or f.get("summary") or ""
     audience = f.get("target audience") or "agent builders"
     deadline = f.get("current launch deadline") or f.get("launch deadline") or f.get("deadline") or ""
+
+    if not project and link:
+        project = urllib.parse.urlparse(link).netloc.split(".")[0].replace("-", " ").title()
+    if not project:
+        return (
+            "Launch Readiness Pack not generated: project name is missing. "
+            "Provide the project name plus at least one of summary, listing draft, live URL, or review notes. "
+            "No generic pack was substituted."
+        )
 
     deadline_line = ""
     date_match = DATE_RE.search(deadline)
@@ -280,9 +348,18 @@ MENU_TERMS = ("what services", "which services", "service list", "what do you of
 def build_reply(content: str, session_key: str, state: dict) -> str:
     parts = session_parts(session_key) or {}
     job_id = parts.get("job_id", "unknown")
+    peer_agent_id = parts.get("to_agent_id", "")
     counts = state.setdefault("session_replies", {})
     idx = int(counts.get(session_key, 0))
     counts[session_key] = idx + 1
+
+    if peer_agent_id not in PLATFORM_REVIEW_AGENT_IDS:
+        if idx > 0:
+            return None
+        return (
+            f"Foreman is an A2MCP service. Submit the project name and at least one concrete summary, listing, "
+            f"live URL, or review note to {ENDPOINT}. Incomplete requests fail uncharged; paid packs are returned by the API."
+        )
 
     text = content.lower()
     prefix = ""
@@ -422,6 +499,9 @@ def send_reply(session_key: str, content: str, state: dict, *, notify: bool) -> 
     if parts:
         content = fetch_full_content(parts["job_id"], parts["to_agent_id"], content)
     message = build_reply(content, session_key, state)
+    if message is None:
+        log(f"suppressed repeated ordinary pre-payment reply session={session_key}")
+        return True
     ok, detail, elapsed_ms = enqueue_reply(session_key, message)
     if not ok:
         log(f"queue reply failed session={session_key} elapsedMs={elapsed_ms} error={detail}")
@@ -501,8 +581,37 @@ def follow() -> None:
                 process_line(line, state)
 
 
+def run_self_test() -> None:
+    ordinary = "job:ordinary:my:4348:to:5632"
+    state = {}
+    first = build_reply("Please make a launch pack for AgentForge.", ordinary, state)
+    assert first and "A2MCP" in first and "DEMO SHOTLIST" not in first
+    assert build_reply("Send the pack here instead.", ordinary, state) is None
+
+    platform = "job:review:my:4348:to:1791"
+    sample = build_reply(
+        json.dumps({
+            "input": {
+                "agentName": "AgentForge",
+                "whatItDoes": "Tests agent endpoints and listing behavior.",
+                "whoIsItFor": "OKX.AI builders",
+                "liveListing": "https://www.okx.ai/agents/3746",
+            }
+        }),
+        platform,
+        {},
+    )
+    assert sample and "AgentForge" in sample and "90s DEMO SHOTLIST" in sample
+    missing = build_reply("Please generate a readiness pack.", "job:missing:my:4348:to:1791", {})
+    assert missing and "No generic pack was substituted" in missing
+    print("Foreman responder gate passed: paid buyers are API-routed and reviewer samples stay personalized.")
+
+
 if __name__ == "__main__":
     try:
-        follow()
+        if "--self-test" in sys.argv:
+            run_self_test()
+        else:
+            follow()
     except KeyboardInterrupt:
         sys.exit(0)

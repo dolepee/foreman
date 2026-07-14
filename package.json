@@ -6,7 +6,7 @@
   "description": "Foreman is the OKX.AI launch contractor for agent builders.",
   "scripts": {
     "typecheck": "node --check api/*.js && node --check api/lib/*.js && node --check scripts/*.mjs && python3 -m py_compile scripts/render-card.py scripts/foreman_fast_responder.py",
-    "agent:verify": "node scripts/verify-agent-api.mjs",
+    "agent:verify": "node scripts/verify-agent-api.mjs && python3 scripts/foreman_fast_responder.py --self-test",
     "build": "node scripts/build-site.mjs",
     "lint": "node scripts/lint.mjs",
     "ffmpeg:check": "node scripts/check-ffmpeg.mjs",
