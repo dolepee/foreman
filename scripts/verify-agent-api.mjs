@@ -56,7 +56,7 @@ const handler = createHandler({ payment });
 const head = await callHandler(handler, { method: "HEAD" });
 assert.equal(head.statusCode, 200);
 
-const unpaid = await callHandler(handler, { method: "POST", body: {} });
+const unpaid = await callHandler(handler, { method: "GET" });
 assert.equal(unpaid.statusCode, 402);
 const challenge = JSON.parse(Buffer.from(unpaid.headers["payment-required"], "base64").toString());
 assert.equal(challenge.x402Version, 2);
@@ -68,21 +68,51 @@ assert.equal(challenge.accepts[0].extra.version, "1");
 const fakeAuthorization = await callHandler(handler, {
   method: "POST",
   headers: { authorization: "Bearer not-a-payment" },
-  body: {},
+  body: { projectName: "AgentForge", summary: "Builds and validates agent services before launch." },
 });
 assert.equal(fakeAuthorization.statusCode, 402);
+assert.equal(calls.verify, 0);
+assert.equal(calls.settle, 0);
+
+const insufficient = await callHandler(handler, {
+  method: "POST",
+  headers: { "payment-signature": "valid-test-payment" },
+  body: {},
+});
+assert.equal(insufficient.statusCode, 400);
+assert.equal(insufficient.json().error, "insufficient_project_context");
+assert.equal(insufficient.json().charged, false);
 assert.equal(calls.verify, 0);
 assert.equal(calls.settle, 0);
 
 const paid = await callHandler(handler, {
   method: "POST",
   headers: { "payment-signature": "valid-test-payment" },
-  body: { projectName: "Foreman payment truth test", liveUrl: "https://example.com" },
+  body: {
+    input: {
+      agentName: "AgentForge",
+      whatItDoes: "Tests agent endpoints and listing behavior before marketplace launch.",
+      whoIsItFor: "OKX.AI service providers",
+      liveListing: "https://www.okx.ai/agents/3746",
+      secondOpinion: "Check whether the listed promise matches the delivered endpoint output.",
+      submissionDeadline: "2026-07-17T00:00:00Z",
+    },
+  },
 });
 assert.equal(paid.statusCode, 200);
-assert.equal(paid.json().servicePayment.settled, true);
-assert.equal(paid.json().servicePayment.amountAtomic, "500000");
+const paidPayload = paid.json();
+assert.equal(paidPayload.servicePayment.settled, true);
+assert.equal(paidPayload.servicePayment.amountAtomic, "500000");
+assert.equal(paidPayload.input.projectName, "AgentForge");
+assert.equal(paidPayload.input.targetUser, "OKX.AI service providers");
+assert.match(paidPayload.result.demoShotlist90s.join(" "), /AgentForge/);
+assert.match(paidPayload.result.xPostDraft, /AgentForge/);
+assert.match(JSON.stringify(paidPayload.result.listingCheck.findings), /listed promise matches/);
+assert.deepEqual(
+  paidPayload.result.personalization.fieldsUsed.sort(),
+  ["deadline", "liveUrl", "notes", "projectName", "summary", "targetUser"].sort(),
+);
 assert.equal(calls.verify, 1);
 assert.equal(calls.settle, 1);
 
-console.log("Foreman API gate passed: 0.5 USDT challenge, fake-header rejection, verified settlement, and transfer receipt.");
+console.log("Foreman API gate passed: validated input before charge, personalized nested fields, verified settlement, and transfer receipt.");

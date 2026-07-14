@@ -1,9 +1,16 @@
-const DEFAULT_INPUT = {
-  projectName: "OKX.AI agent launch",
-  category: "Software Services",
-  summary: "Agent service preparing for OKX.AI listing review.",
-  targetUser: "Agent builders and marketplace service providers",
+const INPUT_ALIASES = {
+  projectName: ["projectName", "project", "name", "agentName", "productName"],
+  category: ["category", "track", "serviceCategory"],
+  summary: ["summary", "description", "projectDescription", "overview", "whatItDoes", "useCase"],
+  targetUser: ["targetUser", "targetUsers", "audience", "customer", "idealCustomer", "whoIsItFor"],
+  listingDraft: ["listingDraft", "listing", "listingDescription", "serviceDescription", "agentDescription"],
+  liveUrl: ["liveUrl", "url", "projectUrl", "website", "endpoint", "serviceUrl", "listingUrl", "liveListing", "demoUrl"],
+  notes: ["notes", "concerns", "goals", "question", "focus", "reviewRequest", "requirements", "brief", "secondOpinion"],
+  deadline: ["deadline", "dueDate", "submissionDeadline", "launchDate"],
 };
+
+const CONTAINER_KEYS = new Set(["input", "data", "payload", "request", "parameters", "arguments", "context"]);
+const SENSITIVE_KEY = /(authorization|cookie|password|secret|signature|private.?key|payment)/i;
 
 import { createChainService } from "./lib/chain.js";
 import { PAYMENT, paymentRequirements } from "./lib/config.js";
@@ -15,73 +22,279 @@ import {
 
 function readInput(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return DEFAULT_INPUT;
+    return emptyInput();
   }
+  const records = collectRecords(body);
+  const input = Object.fromEntries(
+    Object.entries(INPUT_ALIASES).map(([field, aliases]) => [field, readAlias(records, aliases)]),
+  );
+  const rawText = readAlias(records, ["prompt", "content", "task", "query", "message"]);
+
+  input.projectName ||= readLabel(rawText, ["project", "agent", "name"]);
+  input.summary ||= readLabel(rawText, ["summary", "description", "what it does", "use case"]);
+  input.targetUser ||= readLabel(rawText, ["target user", "target users", "audience", "who it is for"]);
+  input.liveUrl ||= readLabel(rawText, ["live url", "url", "website", "listing"]);
+  input.notes ||= rawText;
+  input.providedContext = collectContext(records);
+  return input;
+}
+
+function emptyInput() {
   return {
-    projectName: clean(body.projectName || body.name || DEFAULT_INPUT.projectName),
-    category: clean(body.category || DEFAULT_INPUT.category),
-    summary: clean(body.summary || body.description || body.notes || DEFAULT_INPUT.summary),
-    targetUser: clean(body.targetUser || body.audience || DEFAULT_INPUT.targetUser),
-    listingDraft: clean(body.listingDraft || body.listing || ""),
-    liveUrl: clean(body.liveUrl || body.url || ""),
-    deadline: clean(body.deadline || ""),
+    projectName: "",
+    category: "",
+    summary: "",
+    targetUser: "",
+    listingDraft: "",
+    liveUrl: "",
+    notes: "",
+    deadline: "",
+    providedContext: [],
   };
 }
 
-function clean(value) {
-  return String(value || "").replace(/\s+/g, " ").trim().slice(0, 600);
+function collectRecords(body) {
+  const records = [body];
+  const queue = [{ value: body, depth: 0 }];
+  const seen = new Set([body]);
+  while (queue.length > 0) {
+    const { value, depth } = queue.shift();
+    if (depth >= 3) continue;
+    for (const [key, child] of Object.entries(value)) {
+      if (!child || typeof child !== "object" || Array.isArray(child) || seen.has(child)) continue;
+      if (CONTAINER_KEYS.has(key) || depth === 0) {
+        records.push(child);
+        queue.push({ value: child, depth: depth + 1 });
+        seen.add(child);
+      }
+    }
+  }
+  return records;
+}
+
+function normalizeKey(value) {
+  return String(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function readAlias(records, aliases) {
+  const wanted = new Set(aliases.map(normalizeKey));
+  for (const record of records) {
+    for (const [key, value] of Object.entries(record)) {
+      if (!wanted.has(normalizeKey(key))) continue;
+      const cleaned = clean(value);
+      if (cleaned) return cleaned;
+    }
+  }
+  return "";
+}
+
+function readLabel(text, labels) {
+  if (!text) return "";
+  for (const label of labels) {
+    const pattern = new RegExp(`(?:^|[\\n;])\\s*${label.replace(/\s+/g, "\\s+")}\\s*[:=-]\\s*([^\\n;]+)`, "i");
+    const match = text.match(pattern);
+    if (match) return clean(match[1]);
+  }
+  return "";
+}
+
+function collectContext(records) {
+  const context = [];
+  const seen = new Set();
+  for (const record of records) {
+    for (const [key, value] of Object.entries(record)) {
+      if (SENSITIVE_KEY.test(key) || value === null || typeof value === "object") continue;
+      const cleaned = clean(value, 300);
+      const normalized = normalizeKey(key);
+      if (!cleaned || seen.has(normalized)) continue;
+      context.push({ field: clean(key, 60), value: cleaned });
+      seen.add(normalized);
+      if (context.length >= 12) return context;
+    }
+  }
+  return context;
+}
+
+function clean(value, limit = 1200) {
+  if (typeof value === "object") return "";
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, limit);
+}
+
+function validateInput(input) {
+  const errors = [];
+  if (!input.projectName) errors.push("projectName is required");
+  if (!input.summary && !input.listingDraft && !input.liveUrl && !input.notes) {
+    errors.push("Provide a summary, listing draft, live URL, or review notes");
+  }
+  return errors;
+}
+
+function excerpt(value, limit = 150) {
+  const cleaned = clean(value, limit + 1);
+  return cleaned.length > limit ? `${cleaned.slice(0, limit - 1).trimEnd()}…` : cleaned;
+}
+
+function meaningfulWords(value) {
+  return new Set(
+    clean(value)
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((word) => word.length >= 5 && !["agent", "service", "users", "using", "their", "about"].includes(word)),
+  );
+}
+
+function listingMatchesSummary(input) {
+  if (!input.listingDraft || !input.summary) return null;
+  const summaryWords = meaningfulWords(input.summary);
+  const listingWords = meaningfulWords(input.listingDraft);
+  if (summaryWords.size === 0) return null;
+  const overlap = [...summaryWords].filter((word) => listingWords.has(word)).length;
+  return overlap / summaryWords.size >= 0.25;
+}
+
+function deadlineState(deadline) {
+  if (!deadline) return { state: "not_provided", evidence: "No deadline was supplied." };
+  const parsed = Date.parse(deadline);
+  if (Number.isNaN(parsed)) return { state: "needs_clarification", evidence: `Could not parse deadline: ${deadline}` };
+  if (parsed <= Date.now()) return { state: "passed", evidence: `Submitted deadline has passed: ${deadline}` };
+  return { state: "upcoming", evidence: `Submitted deadline is upcoming: ${deadline}` };
+}
+
+function safetyClaims(input) {
+  const combined = `${input.summary} ${input.listingDraft}`;
+  return [...combined.matchAll(/\b(guaranteed win|guaranteed approval|risk[- ]free|official partner|best on the market)\b/gi)]
+    .map((match) => match[0].toLowerCase());
+}
+
+function buildXPost({ name, targetUser, summary, liveUrl }) {
+  const suffix = " #OKXAI";
+  const body = `Launching ${name} on OKX.AI for ${targetUser}. ${summary} Foreman checked the listing-output match, demo path, deadline, and proof surface.${liveUrl ? ` ${liveUrl}` : ""}`;
+  return `${excerpt(body, 280 - suffix.length)}${suffix}`;
 }
 
 function buildPack(input) {
-  const name = input.projectName || DEFAULT_INPUT.projectName;
+  const name = input.projectName;
   const hasListing = Boolean(input.listingDraft);
   const hasUrl = Boolean(input.liveUrl);
-
-  const fixes = [
-    "Keep the service promise narrow and match it exactly to the delivered output.",
-    "Make the first API response deterministic and fast; do not rely on a long chat loop for verification.",
-    "Show payment or usage gating in the demo so the buyer understands what is paid versus previewed.",
-    "Remove approval guarantees, prize guarantees, investment advice, and unverifiable partnership claims.",
-    "Include one proof screen: endpoint response, receipt hash, or delivery checklist.",
+  const targetUser = input.targetUser || "the intended buyer";
+  const summary = input.summary || input.notes || input.listingDraft;
+  const deadline = deadlineState(input.deadline);
+  const listingMatch = listingMatchesSummary(input);
+  const unsafeClaims = safetyClaims(input);
+  const findings = [
+    {
+      check: "project_identity",
+      status: "pass",
+      evidence: `Project identified as ${name}.`,
+      action: `Use ${name} consistently in the listing, demo, and proof surface.`,
+    },
+    {
+      check: "buyer_clarity",
+      status: input.targetUser ? "pass" : "needs_input",
+      evidence: input.targetUser ? `Target user supplied: ${input.targetUser}` : "No target user was supplied.",
+      action: input.targetUser
+        ? `Open the demo with the problem ${name} solves for ${input.targetUser}.`
+        : `Name one primary buyer for ${name} before publishing launch copy.`,
+    },
+    {
+      check: "listing_output_match",
+      status: !hasListing ? "needs_input" : listingMatch === false ? "mismatch_risk" : "pass",
+      evidence: !hasListing
+        ? "No listing draft was supplied for comparison."
+        : listingMatch === false
+          ? "The listing draft shares too little concrete language with the submitted product summary."
+          : "The listing draft is present and reflects the submitted product context.",
+      action: !hasListing
+        ? `Attach ${name}'s exact marketplace listing copy before the final submission.`
+        : listingMatch === false
+          ? `Rewrite ${name}'s first listing sentence around this delivered capability: ${excerpt(summary, 110)}`
+          : `Keep ${name}'s delivered output inside the scope stated in the listing.`,
+    },
+    {
+      check: "public_runtime",
+      status: hasUrl ? "pass_unverified" : "needs_input",
+      evidence: hasUrl ? `Submitted public surface: ${input.liveUrl}` : "No live URL or endpoint was supplied.",
+      action: hasUrl
+        ? `Show ${input.liveUrl} responding during the proof segment; this pack does not claim to have crawled it.`
+        : `Add ${name}'s live listing or endpoint URL to the launch proof.`,
+    },
+    {
+      check: "deadline",
+      status: deadline.state,
+      evidence: deadline.evidence,
+      action: deadline.state === "passed"
+        ? `Replace the expired date before presenting ${name} as submission-ready.`
+        : deadline.state === "needs_clarification"
+          ? "Use an ISO-8601 deadline so the launch clock can be verified."
+          : deadline.state === "not_provided"
+            ? "Add a concrete launch deadline before recording the final demo."
+            : "Keep the stated launch deadline visible in the final checklist.",
+    },
+    {
+      check: "claim_safety",
+      status: unsafeClaims.length > 0 ? "mismatch_risk" : "pass",
+      evidence: unsafeClaims.length > 0
+        ? `Potentially unsafe claims found: ${unsafeClaims.join(", ")}.`
+        : "No approval, prize, partnership, or risk-free guarantee phrase was detected in the supplied copy.",
+      action: unsafeClaims.length > 0
+        ? "Remove or qualify each claim unless a buyer-verifiable source supports it."
+        : "Keep claims bounded to behavior a buyer can reproduce.",
+    },
   ];
-
-  if (!hasListing) {
-    fixes.push("Add the final listing draft before submission so service/output mismatch can be checked.");
+  if (input.notes) {
+    findings.push({
+      check: "buyer_review_focus",
+      status: "addressed",
+      evidence: `Buyer asked Foreman to focus on: ${excerpt(input.notes, 180)}`,
+      action: `Resolve that focus explicitly in ${name}'s next update and show the before/after in the demo.`,
+    });
   }
-  if (!hasUrl) {
-    fixes.push("Add a live URL or endpoint URL if the service depends on a public runtime.");
-  }
+  const blocking = findings.filter((finding) => ["mismatch_risk", "passed"].includes(finding.status)).length;
+  const missing = findings.filter((finding) => finding.status === "needs_input").length;
 
   return {
-    verdict: hasListing || hasUrl ? "ready_with_minor_gaps" : "sample_ready",
+    verdict: blocking > 0 ? "not_ready" : missing > 0 ? "ready_after_missing_inputs" : "ready_with_minor_fixes",
     project: {
       name,
-      category: input.category || DEFAULT_INPUT.category,
-      targetUser: input.targetUser || DEFAULT_INPUT.targetUser,
-      summary: input.summary || DEFAULT_INPUT.summary,
+      category: input.category || "Not supplied",
+      targetUser,
+      summary,
     },
     listingCheck: {
-      scopeClarity: "pass",
-      outputMatch: hasListing ? "check_draft_against_output" : "needs_final_listing_draft",
-      verifierReadiness: "pass_api_path",
-      riskLanguage: "avoid guarantees and regulated advice",
+      findingCount: findings.length,
+      blockingCount: blocking,
+      missingInputCount: missing,
+      findings,
     },
     demoShotlist90s: [
-      "0-10s: show the raw launch material or rough agent idea.",
-      "10-25s: show the paid API call or OKX.AI service request.",
-      "25-50s: show Foreman returning the readiness pack.",
-      "50-70s: show the fix list, demo structure, and proof checklist.",
-      "70-85s: show the final launch-ready copy or output pack.",
-      "85-90s: close with the service name and #OKXAI.",
+      `0-8s: name the buyer and pain — ${name} helps ${targetUser}.`,
+      `8-22s: show the product doing this concrete job: ${excerpt(summary, 120)}`,
+      "22-35s: show the paid OKX.AI request and the 0.5 USDT service price.",
+      `35-55s: show Foreman's verdict and the highest-priority finding for ${name}.`,
+      hasUrl
+        ? `55-72s: open ${input.liveUrl} and prove the claimed output on the live surface.`
+        : `55-72s: show ${name}'s actual output and add the missing public URL before recording.`,
+      `72-84s: show ${name}'s listing promise beside one matching delivery receipt.`,
+      `84-90s: close with one buyer action for ${targetUser} and #OKXAI.`,
     ],
-    xPostDraft: `Launching ${name} on OKX.AI. Foreman checked the listing, demo path, proof surface, and rejection risks, then returned a submission-ready launch pack. #OKXAI`,
+    xPostDraft: buildXPost({ name, targetUser, summary, liveUrl: input.liveUrl }),
     proofChecklist: [
-      "Public endpoint returns 200 JSON.",
-      "Response includes service verdict, fix list, demo shotlist, and proof checklist.",
-      "No private keys, signatures, trades, or regulated advice are requested.",
-      "Delivery output can be saved as a receipt for buyer review.",
+      hasUrl ? `Capture ${input.liveUrl} returning the output claimed for ${name}.` : `Publish a live URL for ${name}.`,
+      `Put ${name}'s marketplace promise beside one matching delivery artifact.`,
+      `Show the paid request and receipt without exposing signatures, private keys, or cookies.`,
+      `Show one real buyer path for ${targetUser}, including the failure state.`,
+      input.deadline ? `Display and verify the submitted deadline: ${input.deadline}.` : "Add a concrete launch deadline.",
     ],
-    fixes,
+    priorityActions: findings
+      .filter((finding) => ["needs_input", "mismatch_risk", "passed", "needs_clarification", "not_provided"].includes(finding.status))
+      .map((finding) => finding.action)
+      .slice(0, 5),
+    personalization: {
+      fieldsUsed: Object.entries(input)
+        .filter(([key, value]) => key !== "providedContext" && Boolean(value))
+        .map(([key]) => key),
+      suppliedContext: input.providedContext,
+    },
   };
 }
 
@@ -146,8 +359,28 @@ export function createHandler(dependencies = {}) {
       return sendJson(res, 405, { ok: false, error: "method_not_allowed" });
     }
 
+    const input = readInput(req.method === "POST" ? req.body : req.query);
+    const inputErrors = validateInput(input);
+    if (req.method === "POST" && inputErrors.length > 0) {
+      return sendJson(res, 400, {
+        ok: false,
+        error: "insufficient_project_context",
+        details: inputErrors,
+        charged: false,
+      });
+    }
+
     const rawPayment = header(req, "payment-signature");
     if (!rawPayment) return paymentRequired(req, res);
+
+    if (inputErrors.length > 0) {
+      return sendJson(res, 400, {
+        ok: false,
+        error: "insufficient_project_context",
+        details: inputErrors,
+        charged: false,
+      });
+    }
 
     const requirements = paymentRequirements();
     let verified;
@@ -162,7 +395,6 @@ export function createHandler(dependencies = {}) {
       return paymentRequired(req, res, error instanceof PaymentVerificationError ? error.code : "payment_verification_failed");
     }
 
-    const input = readInput(req.method === "POST" ? req.body : req.query);
     const result = buildPack(input);
     let settlement;
     try {
