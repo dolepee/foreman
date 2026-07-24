@@ -54,7 +54,7 @@ const html = `<!doctype html>
         box-shadow: 0 30px 90px rgba(0,0,0,.28);
       }
       .badge { color: #07110c; background: var(--lime); display: inline-flex; padding: 8px 12px; border-radius: 999px; font-weight: 800; }
-      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; }
+      .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 28px; max-width: 640px; }
       .sku strong { display: block; font-size: 20px; color: var(--ink); }
       .sku span { color: var(--lime); font-weight: 800; }
       table { width: 100%; border-collapse: collapse; color: var(--muted); }
@@ -72,7 +72,7 @@ const html = `<!doctype html>
         <div>
           <span class="badge">OKX.AI Launch Contractor</span>
           <h1>Raw launch material in. Submission-ready launch out.</h1>
-          <p>Foreman ships the 90-second demo, listing audit, announcement draft, and proof receipt for agent builders launching on OKX.AI.</p>
+          <p>Foreman returns a readiness check, 90-second demo shotlist, announcement draft, and proof receipt for agent builders launching on OKX.AI.</p>
         </div>
         <div class="card">
           <h2>Warranty</h2>
@@ -81,9 +81,7 @@ const html = `<!doctype html>
         </div>
       </section>
       <section class="grid">
-        <div class="card sku"><strong>Demo Cut</strong><p><span>15-25 USDT</span><br>Captioned 90-second horizontal and vertical cut plus thumbnail.</p></div>
-        <div class="card sku"><strong>Listing Audit</strong><p><span>5-10 USDT</span><br>Review-blocking issues, claim cleanup, and fix list.</p></div>
-        <div class="card sku"><strong>Launch Pack</strong><p><span>30-40 USDT</span><br>Demo, audit, announcement draft, and proof pack.</p></div>
+        <div class="card sku"><strong>Launch Readiness Pack</strong><p><span>0.1 USD₮0</span><br>Readiness check, 90-second demo shotlist, announcement draft, and proof receipt.</p></div>
       </section>
       <section class="card" style="margin-top: 28px;">
         <h2>Delivery Receipts</h2>

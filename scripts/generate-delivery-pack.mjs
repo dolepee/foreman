@@ -17,27 +17,25 @@ const order = readJson(orderPath);
 const shotlist = readJson(shotlistPath);
 const deliveryDir = resolveRepo("data", "deliveries", "sample");
 const receiptMirrorDir = resolveRepo("data", "receipts");
-const outputDir = resolveRepo("data", "samples", "output");
-
 ensureDir(deliveryDir);
 ensureDir(receiptMirrorDir);
 
-const horizontal = join(outputDir, `${order.orderId}-horizontal.mp4`);
-const vertical = join(outputDir, `${order.orderId}-vertical.mp4`);
-const thumbnail = join(outputDir, `${order.orderId}-thumbnail.png`);
+assert(existsSync(shotlistPath), `missing demo shotlist: ${shotlistPath}`);
+assert(shotlist.format === "shotlist_only", "demo shotlist must be shotlist_only");
+assert(shotlist.targetSeconds === 90, "demo shotlist must target 90 seconds");
+assert(
+  Array.isArray(shotlist.scenes) && shotlist.scenes.reduce((total, scene) => total + Number(scene.seconds || 0), 0) === 90,
+  "demo shotlist scenes must total 90 seconds",
+);
 
-for (const path of [horizontal, vertical, thumbnail]) {
-  assert(existsSync(path), `missing rendered output: ${path}`);
-}
-
-const listingAudit = `# Listing Audit: ${order.project.name}
+const readinessCheck = `# Launch Readiness Check: ${order.project.name}
 
 Status: validation sample
 
 ## Review-Blocking Checks
 
 - Clear service outcome: pass
-- Three-SKU scope: pass
+- Single Launch Readiness Pack scope: pass
 - No artificial review or artificial engagement claim: pass
 - No regulated advice claim: pass
 - Warranty wording present: pass
@@ -47,38 +45,23 @@ Status: validation sample
 
 1. Add the live OKX.AI ASP listing URL after approval.
 2. Add a funded reserve address only after the reserve is funded.
-3. Replace generated validation footage with real screen recordings for paid customer delivery.
+3. Keep the listed outcome, demo shotlist, and public proof surface aligned before launch.
 `;
 
-const announcementPost = `Foreman turns raw launch material into an OKX.AI-ready launch package.
+const announcementPost = `Foreman turns raw launch material into a Launch Readiness Pack.
 
-Demo Cut: captioned 90-second horizontal and vertical cut.
-Listing Audit: review-blocking issues and fix list.
-Launch Pack: demo, audit, announcement draft, and proof receipt.
+One paid call returns a readiness check, 90-second demo shotlist, announcement draft, and delivery receipt.
 
 #OKXAI`;
 
-const deliverySummary = `# Delivery Summary
-
-Order: ${order.orderId}
-SKU: ${order.sku}
-Payment status: ${order.paymentStatus}
-
-This sample proves the local delivery pipeline only. It is not a paid order, not revenue, and not a customer review.
-`;
-
 const files = {
-  horizontal_demo: horizontal,
-  vertical_demo: vertical,
-  thumbnail,
-  listing_audit: join(deliveryDir, "listing-audit.md"),
-  announcement_post: join(deliveryDir, "announcement-post.md"),
-  delivery_summary: join(deliveryDir, "delivery-summary.md")
+  readiness_check: join(deliveryDir, "readiness-check.md"),
+  demo_shotlist: shotlistPath,
+  announcement_post: join(deliveryDir, "announcement-post.md")
 };
 
-writeFileSync(files.listing_audit, listingAudit);
+writeFileSync(files.readiness_check, readinessCheck);
 writeFileSync(files.announcement_post, announcementPost);
-writeFileSync(files.delivery_summary, deliverySummary);
 
 const outputs = Object.fromEntries(
   Object.entries(files).map(([key, path]) => [
@@ -92,12 +75,8 @@ const outputs = Object.fromEntries(
 
 const qa = {
   scope_matches_written_order: true,
-  runtime_under_90_seconds: true,
-  no_copyrighted_music_or_assets: true,
-  captions_present: true,
-  horizontal_and_vertical_exports_present: true,
-  thumbnail_present: true,
-  listing_audit_present: true,
+  readiness_check_present: true,
+  demo_shotlist_present: true,
   announcement_post_present: true,
   receipt_hashes_verified: true,
   warranty_state_recorded: true

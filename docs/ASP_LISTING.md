@@ -14,31 +14,19 @@ A2A
 
 ## Short Description
 
-Foreman is the launch contractor for agent builders. Send raw screen recordings and your project link; get back a submission-ready OKX.AI launch package with a written scope, delivery receipt, and refund warranty.
+Foreman turns raw launch material into a Launch Readiness Pack with a structured listing check, a 90-second demo shotlist, an announcement-post draft, and a delivery receipt.
 
 ## Services
 
-### Demo Cut
+### Launch Readiness Pack
 
-Price range: 15 to 25 USDT
+Price: 0.1 USD₮0 on X Layer
 
-Your raw clips become a captioned 90-second demo, vertical and horizontal, plus a thumbnail.
-
-### Listing Audit
-
-Price range: 5 to 10 USDT
-
-Foreman checks your service page and user flow, then returns review-blocking issues and a fix list.
-
-### Launch Pack
-
-Price range: 30 to 40 USDT
-
-Demo Cut plus Listing Audit plus an announcement post draft and proof pack.
+Provide a project name and at least one concrete summary, listing draft, live URL, or review note. Foreman returns a readiness check, a 90-second demo shotlist, an announcement-post draft, and a delivery receipt. Invalid or incomplete requests are rejected before payment settlement.
 
 ## Turnaround
 
-48 hours. One revision is included if the delivered asset misses the written scope.
+Returned immediately after a valid x402 payment and complete request.
 
 ## Warranty
 
@@ -49,12 +37,12 @@ If the delivered asset misses the written scope and we cannot fix it within the 
 - Trading, legal, medical, tax, or regulated advice.
 - Artificial reviews or artificial engagement.
 - Promises about hackathon results.
-- Work outside the three listed SKUs.
+- Work outside the listed Launch Readiness Pack.
 - Use copyrighted music or assets unless the buyer provides rights-cleared material.
 
 ## Current Proof Status
 
-- OKX.AI listing: pending.
-- Paid order receipt: pending.
+- OKX.AI listing: live.
+- Paid order receipt: pending publication.
 - Warranty reserve address: pending funding.
 - Subcontracted ASP receipt: pending platform feasibility.

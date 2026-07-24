@@ -27,7 +27,7 @@
     },
     "sku": {
       "type": "string",
-      "enum": ["demo_cut", "listing_audit", "launch_pack"]
+      "enum": ["launch_readiness_pack"]
     },
     "priceUSDT": { "type": "number", "minimum": 0 },
     "paymentStatus": {

@@ -1,11 +1,7 @@
 [
   "scope_matches_written_order",
-  "runtime_under_90_seconds",
-  "no_copyrighted_music_or_assets",
-  "captions_present",
-  "horizontal_and_vertical_exports_present",
-  "thumbnail_present",
-  "listing_audit_present",
+  "readiness_check_present",
+  "demo_shotlist_present",
   "announcement_post_present",
   "receipt_hashes_verified",
   "warranty_state_recorded"

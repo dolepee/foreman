@@ -9,7 +9,7 @@ export const XLAYER = {
 
 export const PAYMENT = {
   asset: getAddress(process.env.FOREMAN_PAYMENT_ASSET || "0x779ded0c9e1022225f8e0630b35a9b54be713736"),
-  amount: process.env.FOREMAN_PRICE_ATOMIC || "500000",
+  amount: process.env.FOREMAN_PRICE_ATOMIC || "100000",
   decimals: 6,
   symbol: "USDT",
   name: process.env.FOREMAN_PAYMENT_NAME || "USD₮0",

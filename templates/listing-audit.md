@@ -1,4 +1,4 @@
-# Listing Audit Template
+# Launch Readiness Check Template
 
 ## Summary
 

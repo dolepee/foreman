@@ -250,7 +250,7 @@ def _receipt(job_id: str, body: str) -> str:
         f"(4) DELIVERY RECEIPT: service={SERVICE_NAME}; agent={AGENT_NAME}#{AGENT_ID}; "
         f"job={job_id[:18]}…; delivered={ts}; content-hash=sha256:{digest}. "
         f"This sample was delivered in-chat for verification. Production requests are served "
-        f"x402-gated at {ENDPOINT} (0.5 USDT per pack)."
+        f"x402-gated at {ENDPOINT} (0.1 USDT per pack)."
     )
 
 
@@ -311,7 +311,7 @@ def build_launch_pack(content: str, job_id: str) -> str:
         + f". Built for {audience}. Pay per pack, receipt included. #OKXAI\""
     )
     body = f"{check} {shotlist} {xdraft}"
-    return f"Launch Pack Lite delivered. {body} {_receipt(job_id, body)}"
+    return f"Launch Readiness Pack delivered. {body} {_receipt(job_id, body)}"
 
 
 def build_followup(content: str, job_id: str, idx: int) -> str:
@@ -321,7 +321,7 @@ def build_followup(content: str, job_id: str, idx: int) -> str:
     if idx == 1:
         return (
             f"Confirmed: the provided details are sufficient; no further input is required. "
-            f"The full Launch Pack Lite (readiness check, 90s shotlist, X draft, delivery receipt) "
+            f"The full Launch Readiness Pack (readiness check, 90s shotlist, X draft, delivery receipt) "
             f"was delivered in my previous message. Supplementary raw demo notes as requested: "
             f"'Demo opens on unstructured launch notes for {project}, runs the Foreman pack call live, "
             f"and ends on the delivered pack plus its receipt hash so the output is verifiable.' "
@@ -334,7 +334,7 @@ def build_followup(content: str, job_id: str, idx: int) -> str:
             f"trigger acceptance and Foreman will file the same pack as the formal deliverable."
         )
     return (
-        f"Foreman standing by at {ts}. The Launch Pack Lite for this job is delivered and unchanged; "
+        f"Foreman standing by at {ts}. The Launch Readiness Pack for this job is delivered and unchanged; "
         f"receipt available in-thread. Send a new brief any time for a fresh pack."
     )
 
@@ -366,8 +366,8 @@ def build_reply(content: str, session_key: str, state: dict) -> str:
 
     if any(term in text for term in MENU_TERMS):
         return (
-            f"{AGENT_NAME} services: Launch Readiness Check, 90s Demo Shotlist, and Launch Pack Lite "
-            f"(all bundled in the {SERVICE_NAME}, 0.5 USDT via x402 at {ENDPOINT}). "
+            f"{AGENT_NAME} service: a Launch Readiness Pack with a readiness check, 90s demo shotlist, "
+            f"announcement draft, and delivery receipt (0.1 USDT via x402 at {ENDPOINT}). "
             f"Send a listing draft, product link, or raw demo notes and the pack comes back in one reply."
         )
 

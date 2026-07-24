@@ -64,4 +64,4 @@ export function escapeDrawtext(text) {
 export const lockedWarranty =
   "If the delivered asset misses the written scope and we cannot fix it within the revision window, we refund the service fee.";
 
-export const allowedSkus = new Set(["demo_cut", "listing_audit", "launch_pack"]);
+export const allowedSkus = new Set(["launch_readiness_pack"]);
