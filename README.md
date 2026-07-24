@@ -2,15 +2,16 @@
 
 Foreman is the OKX.AI launch contractor for agent builders.
 
-Give Foreman raw launch material. It returns a submission-ready package: a captioned 90-second demo cut, an OKX.AI listing audit, an announcement post draft, and a delivery receipt backed by a refund warranty.
+Give Foreman raw launch material. It returns one submission-ready Launch Readiness Pack: a structured listing check, a 90-second demo shotlist, an announcement post draft, and a delivery receipt backed by a refund warranty.
 
 ## Scope
 
-Foreman has three SKUs only:
+Foreman's listed service is `Launch Readiness Pack` at `0.1 USD₮0` on X Layer. It includes:
 
-- `Demo Cut`: raw clips become a captioned 90-second demo, vertical and horizontal, plus a thumbnail.
-- `Listing Audit`: service page and flow stress test with review-blocking issues and a fix list.
-- `Launch Pack`: Demo Cut plus Listing Audit plus announcement post draft and proof pack.
+- A launch-readiness check with the highest-priority listing and buyer-flow issues.
+- A 90-second demo shotlist.
+- An announcement-post draft.
+- A delivery receipt with the checked inputs and output hash.
 
 Foreman will not provide trading advice, fake reviews, engagement farming, regulated advice, or promises about hackathon results.
 
@@ -22,23 +23,16 @@ The warranty reserve address is added only after it is actually funded.
 
 ## Validation Commands
 
-One-time local render setup:
-
-```bash
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-```
-
 ```bash
 npm run typecheck
+npm run agent:verify
 npm run build
 npm run lint
-npm run ffmpeg:check
 npm run order:validate
 npm run sample:all
 ```
 
-`sample:all` validates the sample order, generates a shot list, renders sample horizontal and vertical videos with `ffmpeg`, creates a delivery pack, verifies hashes, verifies receipts, and builds the public service page.
+`sample:all` validates the sample order, generates a 90-second demo shotlist, creates a Launch Readiness Pack, verifies its hashes and receipt, and builds the public service page.
 
 ## Current Status
 

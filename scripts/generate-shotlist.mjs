@@ -18,20 +18,20 @@ const scenes = [
     tone: "process"
   },
   {
-    title: "Demo Cut",
-    caption: "Raw footage becomes a captioned 90-second horizontal and vertical cut.",
+    title: "Launch-readiness check",
+    caption: "Foreman identifies the highest-priority listing and buyer-flow issue before the launch goes public.",
     seconds: 15,
     tone: "output"
   },
   {
-    title: "Listing Audit",
-    caption: "The OKX.AI service page is checked for review blockers and unclear claims.",
+    title: "90-second demo shotlist",
+    caption: "A concise sequence shows the buyer problem, concrete action, proof, and call to action.",
     seconds: 15,
     tone: "output"
   },
   {
-    title: "Launch Pack",
-    caption: "Foreman packages the X post draft, thumbnail, audit notes, and proof receipt.",
+    title: "Announcement draft",
+    caption: "A concise post frames the outcome and links the proof without overstating traction.",
     seconds: 15,
     tone: "output"
   },
@@ -47,7 +47,7 @@ writeJson(outPath, {
   orderId: order.orderId,
   projectName: order.project.name,
   targetSeconds: 90,
-  format: "horizontal_and_vertical",
+  format: "shotlist_only",
   generatedAt: new Date().toISOString(),
   scenes
 });

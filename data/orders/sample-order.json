@@ -4,7 +4,7 @@
     "name": "Internal validation sample",
     "contact": "local-only"
   },
-  "sku": "launch_pack",
+  "sku": "launch_readiness_pack",
   "priceUSDT": 0,
   "paymentStatus": "sample_not_paid",
   "project": {
@@ -17,14 +17,12 @@
   "deadline": "2026-07-04T23:59:00Z",
   "rawMaterials": [],
   "deliverables": [
-    "horizontal_demo",
-    "vertical_demo",
-    "thumbnail",
-    "listing_audit",
+    "readiness_check",
+    "demo_shotlist",
     "announcement_post",
     "delivery_receipt"
   ],
-  "scope": "Create a sample launch package for Foreman using generated validation footage. This is not a paid customer order and must not be counted as revenue.",
+  "scope": "Create a sample Launch Readiness Pack for Foreman with a readiness check, 90-second demo shotlist, announcement post, and delivery receipt. This is not a paid customer order and must not be counted as revenue.",
   "revisionPolicy": "One revision included for paid customer orders.",
   "warranty": "If the delivered asset misses the written scope and we cannot fix it within the revision window, we refund the service fee."
 }

@@ -269,7 +269,7 @@ function buildPack(input) {
     demoShotlist90s: [
       `0-8s: name the buyer and pain — ${name} helps ${targetUser}.`,
       `8-22s: show the product doing this concrete job: ${excerpt(summary, 120)}`,
-      "22-35s: show the paid OKX.AI request and the 0.5 USDT service price.",
+      "22-35s: show the paid OKX.AI request and the 0.1 USDT service price.",
       `35-55s: show Foreman's verdict and the highest-priority finding for ${name}.`,
       hasUrl
         ? `55-72s: open ${input.liveUrl} and prove the claimed output on the live surface.`

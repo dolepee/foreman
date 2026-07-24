@@ -60,8 +60,8 @@ const unpaid = await callHandler(handler, { method: "GET" });
 assert.equal(unpaid.statusCode, 402);
 const challenge = JSON.parse(Buffer.from(unpaid.headers["payment-required"], "base64").toString());
 assert.equal(challenge.x402Version, 2);
-assert.equal(challenge.accepts[0].amount, "500000");
-assert.equal(challenge.accepts[0].maxAmountRequired, "500000");
+assert.equal(challenge.accepts[0].amount, "100000");
+assert.equal(challenge.accepts[0].maxAmountRequired, "100000");
 assert.equal(challenge.accepts[0].extra.name, "USD₮0");
 assert.equal(challenge.accepts[0].extra.version, "1");
 
@@ -102,7 +102,7 @@ const paid = await callHandler(handler, {
 assert.equal(paid.statusCode, 200);
 const paidPayload = paid.json();
 assert.equal(paidPayload.servicePayment.settled, true);
-assert.equal(paidPayload.servicePayment.amountAtomic, "500000");
+assert.equal(paidPayload.servicePayment.amountAtomic, "100000");
 assert.equal(paidPayload.input.projectName, "AgentForge");
 assert.equal(paidPayload.input.targetUser, "OKX.AI service providers");
 assert.match(paidPayload.result.demoShotlist90s.join(" "), /AgentForge/);

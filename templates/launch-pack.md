@@ -1,22 +1,16 @@
-# Launch Pack Template
+# Launch Readiness Pack Template
 
 ## Included Deliverables
 
-- Captioned horizontal demo.
-- Captioned vertical demo.
-- Thumbnail.
-- Listing audit.
+- Launch-readiness check.
+- 90-second demo shotlist.
 - Announcement post draft.
 - Delivery receipt.
 
 ## Buyer Inputs
 
 - Project name.
-- Project summary.
-- Raw clips.
-- Repo or live URL.
-- Target category.
-- Deadline.
+- At least one concrete summary, listing draft, live URL, or review note.
 
 ## Delivery Notes
 
