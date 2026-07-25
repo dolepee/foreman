@@ -30,12 +30,14 @@ export function readControlledFailure(body) {
   const queue = [{ value: body, depth: 0 }];
   const seen = new Set();
   let candidate = null;
-  while (queue.length > 0 && !candidate) {
+  let found = false;
+  while (queue.length > 0 && !found) {
     const { value, depth } = queue.shift();
     if (!value || typeof value !== "object" || Array.isArray(value) || seen.has(value)) continue;
     seen.add(value);
-    if (value.controlledProviderFailure) {
+    if (Object.hasOwn(value, "controlledProviderFailure")) {
       candidate = value.controlledProviderFailure;
+      found = true;
       break;
     }
     if (depth >= 3) continue;
@@ -45,7 +47,10 @@ export function readControlledFailure(body) {
       }
     }
   }
-  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return null;
+  if (!found) return null;
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+    return { invalid: true };
+  }
   return {
     id: String(candidate.id || "").trim(),
     authorization: String(candidate.authorization || "").trim(),
@@ -54,6 +59,9 @@ export function readControlledFailure(body) {
 
 export function authorizeControlledFailure({ request, config, now = Date.now() }) {
   if (!request) return { requested: false, authorized: false };
+  if (request.invalid) {
+    return { requested: true, authorized: false, reason: "controlled_failure_request_invalid" };
+  }
   if (!config) return { requested: true, authorized: false, reason: "controlled_failure_disabled" };
   if (now > config.expiresAt) return { requested: true, authorized: false, reason: "controlled_failure_expired" };
   if (!request.id || !sameText(request.id, config.id)) {

@@ -154,6 +154,21 @@ assert.equal(unauthorizedPilot.json().charged, false);
 assert.equal(calls.verify, 2);
 assert.equal(calls.settle, 2);
 
+const malformedPilot = await callHandler(pilotHandler, {
+  method: "POST",
+  headers: { "payment-signature": "valid-test-payment" },
+  body: {
+    projectName: "PolicyPool pilot",
+    summary: "A malformed pilot marker must not become an ordinary purchase.",
+    controlledProviderFailure: "not-an-object",
+  },
+});
+assert.equal(malformedPilot.statusCode, 403);
+assert.equal(malformedPilot.json().error, "controlled_failure_request_invalid");
+assert.equal(malformedPilot.json().charged, false);
+assert.equal(calls.verify, 2);
+assert.equal(calls.settle, 2);
+
 const controlledFailure = await callHandler(pilotHandler, {
   method: "POST",
   headers: { "payment-signature": "valid-test-payment" },
