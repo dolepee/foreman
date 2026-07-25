@@ -15,6 +15,12 @@ const SENSITIVE_KEY = /(authorization|cookie|password|secret|signature|private.?
 import { createChainService } from "./lib/chain.js";
 import { PAYMENT, paymentRequirements } from "./lib/config.js";
 import {
+  authorizeControlledFailure,
+  controlledFailureConfig,
+  payerMatchesControlledFailure,
+  readControlledFailure,
+} from "./lib/controlled-failure.js";
+import {
   createPaymentService,
   PaymentConfigurationError,
   PaymentVerificationError,
@@ -344,6 +350,9 @@ function paymentRequired(req, res, error = "Payment required") {
 export function createHandler(dependencies = {}) {
   let runtimePayment = dependencies.payment;
   const getPayment = () => (runtimePayment ||= createPaymentService({ chain: createChainService() }));
+  const getControlledFailure = Object.hasOwn(dependencies, "controlledFailureConfig")
+    ? () => dependencies.controlledFailureConfig
+    : () => controlledFailureConfig();
 
   return async function handler(req, res) {
     if (req.method === "OPTIONS") return sendJson(res, 200, { ok: true });
@@ -359,7 +368,8 @@ export function createHandler(dependencies = {}) {
       return sendJson(res, 405, { ok: false, error: "method_not_allowed" });
     }
 
-    const input = readInput(req.method === "POST" ? req.body : req.query);
+    const rawInput = req.method === "POST" ? req.body : req.query;
+    const input = readInput(rawInput);
     const inputErrors = validateInput(input);
     if (req.method === "POST" && inputErrors.length > 0) {
       return sendJson(res, 400, {
@@ -372,6 +382,32 @@ export function createHandler(dependencies = {}) {
 
     const rawPayment = header(req, "payment-signature");
     if (!rawPayment) return paymentRequired(req, res);
+
+    const failureRequest = readControlledFailure(rawInput);
+    let failureAuthorization = { requested: false, authorized: false };
+    let failureConfig = null;
+    if (failureRequest) {
+      try {
+        failureConfig = getControlledFailure();
+        failureAuthorization = authorizeControlledFailure({
+          request: failureRequest,
+          config: failureConfig,
+        });
+      } catch {
+        return sendJson(res, 503, {
+          ok: false,
+          error: "controlled_failure_configuration_invalid",
+          charged: false,
+        });
+      }
+      if (!failureAuthorization.authorized) {
+        return sendJson(res, 403, {
+          ok: false,
+          error: failureAuthorization.reason,
+          charged: false,
+        });
+      }
+    }
 
     if (inputErrors.length > 0) {
       return sendJson(res, 400, {
@@ -395,6 +431,17 @@ export function createHandler(dependencies = {}) {
       return paymentRequired(req, res, error instanceof PaymentVerificationError ? error.code : "payment_verification_failed");
     }
 
+    if (
+      failureAuthorization.authorized
+      && !payerMatchesControlledFailure(verified.payer, failureConfig)
+    ) {
+      return sendJson(res, 403, {
+        ok: false,
+        error: "controlled_failure_payer_mismatch",
+        charged: false,
+      });
+    }
+
     const result = buildPack(input);
     let settlement;
     try {
@@ -405,6 +452,26 @@ export function createHandler(dependencies = {}) {
 
     res.setHeader("PAYMENT-RESPONSE", settlement.responseHeader);
     res.setHeader("X-PAYMENT-RESPONSE", settlement.responseHeader);
+    if (failureAuthorization.authorized) {
+      return sendJson(res, 409, {
+        ok: false,
+        error: "controlled_provider_non_delivery",
+        charged: true,
+        pilot: {
+          id: failureConfig.id,
+          mode: "controlled_provider_failure",
+          deliverableWithheld: true,
+        },
+        servicePayment: {
+          settled: true,
+          network: settlement.network,
+          transaction: settlement.transaction,
+          payer: settlement.payer,
+          amountAtomic: settlement.amount,
+          transfer: settlement.transfer,
+        },
+      });
+    }
     return sendJson(res, 200, {
       ok: true,
       agent: "Foreman",
