@@ -2,6 +2,9 @@ import { createHash, timingSafeEqual } from "node:crypto";
 
 const ADDRESS = /^0x[a-fA-F0-9]{40}$/;
 const HASH = /^[a-fA-F0-9]{64}$/;
+const INPUT_CONTAINERS = new Set([
+  "input", "data", "payload", "request", "parameters", "arguments", "context", "requirements",
+]);
 
 function sameText(left, right) {
   const a = Buffer.from(String(left));
@@ -41,9 +44,14 @@ export function readControlledFailure(body) {
       break;
     }
     if (depth >= 3) continue;
-    for (const key of ["input", "data", "payload", "request", "parameters", "arguments", "requirements"]) {
-      if (value[key] && typeof value[key] === "object") {
-        queue.push({ value: value[key], depth: depth + 1 });
+    for (const [key, child] of Object.entries(value)) {
+      if (
+        child
+        && typeof child === "object"
+        && !Array.isArray(child)
+        && (depth === 0 || INPUT_CONTAINERS.has(key))
+      ) {
+        queue.push({ value: child, depth: depth + 1 });
       }
     }
   }
