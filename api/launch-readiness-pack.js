@@ -384,27 +384,29 @@ export function createHandler(dependencies = {}) {
     if (!rawPayment) return paymentRequired(req, res);
 
     const failureRequest = readControlledFailure(rawInput);
-    let failureAuthorization;
-    let failureConfig;
-    try {
-      failureConfig = getControlledFailure();
-      failureAuthorization = authorizeControlledFailure({
-        request: failureRequest,
-        config: failureConfig,
-      });
-    } catch {
-      return sendJson(res, 503, {
-        ok: false,
-        error: "controlled_failure_configuration_invalid",
-        charged: false,
-      });
-    }
-    if (failureAuthorization.requested && !failureAuthorization.authorized) {
-      return sendJson(res, 403, {
-        ok: false,
-        error: failureAuthorization.reason,
-        charged: false,
-      });
+    let failureAuthorization = { requested: false, authorized: false };
+    let failureConfig = null;
+    if (failureRequest) {
+      try {
+        failureConfig = getControlledFailure();
+        failureAuthorization = authorizeControlledFailure({
+          request: failureRequest,
+          config: failureConfig,
+        });
+      } catch {
+        return sendJson(res, 503, {
+          ok: false,
+          error: "controlled_failure_configuration_invalid",
+          charged: false,
+        });
+      }
+      if (!failureAuthorization.authorized) {
+        return sendJson(res, 403, {
+          ok: false,
+          error: failureAuthorization.reason,
+          charged: false,
+        });
+      }
     }
 
     if (inputErrors.length > 0) {

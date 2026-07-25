@@ -115,6 +115,23 @@ assert.deepEqual(
 assert.equal(calls.verify, 1);
 assert.equal(calls.settle, 1);
 
+const previousPartialPilotId = process.env.FOREMAN_CONTROLLED_FAILURE_ID;
+process.env.FOREMAN_CONTROLLED_FAILURE_ID = "partial-config-must-not-affect-normal-buyers";
+const normalWithMalformedPilotConfig = await callHandler(createHandler({ payment }), {
+  method: "POST",
+  headers: { "payment-signature": "valid-test-payment" },
+  body: {
+    projectName: "Normal buyer",
+    summary: "This ordinary request must remain isolated from optional pilot configuration.",
+  },
+});
+if (previousPartialPilotId === undefined) delete process.env.FOREMAN_CONTROLLED_FAILURE_ID;
+else process.env.FOREMAN_CONTROLLED_FAILURE_ID = previousPartialPilotId;
+assert.equal(normalWithMalformedPilotConfig.statusCode, 200);
+assert.equal(normalWithMalformedPilotConfig.json().ok, true);
+assert.equal(calls.verify, 2);
+assert.equal(calls.settle, 2);
+
 const pilotConfig = {
   id: "pp-keji-001",
   authorizationHash: "e1c857df4dfc2e65719d9bf19750898c8a11143e3b3f31085e8e3d584d379268",
@@ -134,8 +151,8 @@ const unauthorizedPilot = await callHandler(pilotHandler, {
 });
 assert.equal(unauthorizedPilot.statusCode, 403);
 assert.equal(unauthorizedPilot.json().charged, false);
-assert.equal(calls.verify, 1);
-assert.equal(calls.settle, 1);
+assert.equal(calls.verify, 2);
+assert.equal(calls.settle, 2);
 
 const controlledFailure = await callHandler(pilotHandler, {
   method: "POST",
@@ -153,8 +170,8 @@ assert.equal(controlledFailure.headers["payment-response"], "settled-response");
 assert.equal(controlledFailure.json().error, "controlled_provider_non_delivery");
 assert.equal(controlledFailure.json().charged, true);
 assert.equal(controlledFailure.json().pilot.deliverableWithheld, true);
-assert.equal(calls.verify, 2);
-assert.equal(calls.settle, 2);
+assert.equal(calls.verify, 3);
+assert.equal(calls.settle, 3);
 assert.doesNotMatch(JSON.stringify(controlledFailure.json()), /test-authorization/);
 
 const disabledPilot = await callHandler(createHandler({ payment, controlledFailureConfig: null }), {
@@ -169,8 +186,8 @@ const disabledPilot = await callHandler(createHandler({ payment, controlledFailu
 assert.equal(disabledPilot.statusCode, 403);
 assert.equal(disabledPilot.json().error, "controlled_failure_disabled");
 assert.equal(disabledPilot.json().charged, false);
-assert.equal(calls.verify, 2);
-assert.equal(calls.settle, 2);
+assert.equal(calls.verify, 3);
+assert.equal(calls.settle, 3);
 
 const wrongPayerPayment = {
   ...payment,
@@ -193,6 +210,6 @@ const wrongPayerPilot = await callHandler(
 assert.equal(wrongPayerPilot.statusCode, 403);
 assert.equal(wrongPayerPilot.json().error, "controlled_failure_payer_mismatch");
 assert.equal(wrongPayerPilot.json().charged, false);
-assert.equal(calls.settle, 2);
+assert.equal(calls.settle, 3);
 
 console.log("Foreman API gate passed: validated input before charge, personalized nested fields, verified settlement, and transfer receipt.");
