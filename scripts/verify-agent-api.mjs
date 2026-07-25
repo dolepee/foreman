@@ -169,6 +169,23 @@ assert.equal(malformedPilot.json().charged, false);
 assert.equal(calls.verify, 2);
 assert.equal(calls.settle, 2);
 
+const malformedNestedPilot = await callHandler(pilotHandler, {
+  method: "POST",
+  headers: { "payment-signature": "valid-test-payment" },
+  body: {
+    context: {
+      projectName: "PolicyPool pilot",
+      summary: "Every wrapper accepted for project input must fail closed on a malformed pilot marker.",
+      controlledProviderFailure: false,
+    },
+  },
+});
+assert.equal(malformedNestedPilot.statusCode, 403);
+assert.equal(malformedNestedPilot.json().error, "controlled_failure_request_invalid");
+assert.equal(malformedNestedPilot.json().charged, false);
+assert.equal(calls.verify, 2);
+assert.equal(calls.settle, 2);
+
 const controlledFailure = await callHandler(pilotHandler, {
   method: "POST",
   headers: { "payment-signature": "valid-test-payment" },
