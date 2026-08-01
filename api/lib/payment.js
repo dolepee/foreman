@@ -233,7 +233,8 @@ export function unpaidServiceDiscoveryBody() {
     ok: false,
     error: Object.freeze({
       code: "payment_required",
-      message: "Payment of 0.1 USD₮0 is required for one Launch Readiness Pack",
+      message:
+        "Payment is required for one Launch Readiness Pack; use accepts[0] for the exact asset and amount",
     }),
     resource: Object.freeze({
       url: FOREMAN_SERVICE_RESOURCE,

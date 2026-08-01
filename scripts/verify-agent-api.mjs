@@ -277,6 +277,8 @@ await withServer(unpaidApp, async (origin) => {
     if (probe.label !== "HEAD") {
       const body = JSON.parse(response.body);
       assert.equal(body.error.code, "payment_required");
+      assert.match(body.error.message, /accepts\[0\]/);
+      assert.doesNotMatch(body.error.message, /0\.1 USD/);
       assert.deepEqual(body.inputSchema, FOREMAN_INPUT_BODY_SCHEMA);
       assert.ok(body.inputSchema.anyOf.length > 0);
       assert.equal(body.inputSchema.properties.deadline.type, "string");
