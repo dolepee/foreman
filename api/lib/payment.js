@@ -63,7 +63,7 @@ const FOREMAN_CHALLENGE_INPUT_BODY_SCHEMA = deepFreeze({
     liveUrl: { type: "string" },
     notes: { type: "string" },
   },
-  required: ["projectName"],
+  required: ["projectName", "summary"],
 });
 
 export const FOREMAN_CHALLENGE_OUTPUT_SCHEMA = deepFreeze({

@@ -257,6 +257,11 @@ await withServer(unpaidApp, async (origin) => {
     const challenge = decodeHeader(response.headers["payment-required"]);
     assert.equal(challenge.x402Version, 2);
     assert.deepEqual(challenge.outputSchema, FOREMAN_CHALLENGE_OUTPUT_SCHEMA);
+    assert.deepEqual(
+      challenge.outputSchema.input.body.required,
+      ["projectName", "summary"],
+      "the compact header must describe a request the paid handler can deliver",
+    );
     assert.equal(
       Object.hasOwn(challenge.outputSchema.input.body.properties, "deadline"),
       false,
