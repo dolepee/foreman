@@ -10,7 +10,7 @@ Software Services
 
 ## Service Type
 
-A2A
+A2MCP
 
 ## Short Description
 
@@ -26,7 +26,7 @@ Provide a project name and at least one concrete summary, listing draft, live UR
 
 ## Turnaround
 
-Returned immediately after a valid x402 payment and complete request.
+Returned immediately after a valid official OKX x402 payment and complete request. Unpaid discovery includes the full input schema and a concrete example; incomplete paid replays are rejected without settlement.
 
 ## Warranty
 
@@ -42,7 +42,7 @@ If the delivered asset misses the written scope and we cannot fix it within the 
 
 ## Current Proof Status
 
-- OKX.AI listing: live.
+- OKX.AI listing: verify on the marketplace; this repository does not claim approval status.
 - Paid order receipt: pending publication.
 - Warranty reserve address: pending funding.
 - Subcontracted ASP receipt: pending platform feasibility.

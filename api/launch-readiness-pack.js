@@ -12,8 +12,8 @@ const INPUT_ALIASES = {
 const CONTAINER_KEYS = new Set(["input", "data", "payload", "request", "parameters", "arguments", "context"]);
 const SENSITIVE_KEY = /(authorization|cookie|password|secret|signature|private.?key|payment)/i;
 
-import { createChainService } from "./lib/chain.js";
-import { PAYMENT, paymentRequirements } from "./lib/config.js";
+import express from "express";
+
 import {
   authorizeControlledFailure,
   controlledFailureConfig,
@@ -21,9 +21,10 @@ import {
   readControlledFailure,
 } from "./lib/controlled-failure.js";
 import {
-  createPaymentService,
+  captureVerifiedPaymentRequest,
+  createPaymentGate,
+  FOREMAN_SERVICE_PATH,
   PaymentConfigurationError,
-  PaymentVerificationError,
 } from "./lib/payment.js";
 
 function readInput(body) {
@@ -304,84 +305,82 @@ function buildPack(input) {
   };
 }
 
-function sendJson(res, status, payload) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, PAYMENT-SIGNATURE, X-PAYMENT");
-  res.setHeader("Access-Control-Expose-Headers", "PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE");
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.status(status).send(JSON.stringify(payload));
-}
-
-function absoluteUrl(req) {
-  const host = header(req, "x-forwarded-host") || header(req, "host") || "foreman-nu-one.vercel.app";
-  const proto = header(req, "x-forwarded-proto") || "https";
-  return req.url?.startsWith("http") ? req.url : `${proto}://${host}${req.url || "/api/launch-readiness-pack"}`;
-}
-
-function header(req, name) {
-  const direct = req.headers?.[name] ?? req.headers?.[name.toLowerCase()] ?? req.headers?.[name.toUpperCase()];
-  return Array.isArray(direct) ? direct[0] : direct || "";
-}
-
-function encodeHeader(payload) {
-  return Buffer.from(JSON.stringify(payload)).toString("base64");
-}
-
-function paymentRequired(req, res, error = "Payment required") {
-  const requirements = paymentRequirements();
-  const challenge = {
-    x402Version: 2,
-    resource: {
-      url: absoluteUrl(req),
-      description: "Foreman Launch Readiness Pack API",
-      mimeType: "application/json",
-    },
-    accepts: [requirements],
-  };
-  res.setHeader("PAYMENT-REQUIRED", encodeHeader(challenge));
-  return sendJson(res, 402, {
-    ...challenge,
-    error,
-    charged: false,
-  });
-}
-
 export function createHandler(dependencies = {}) {
-  let runtimePayment = dependencies.payment;
-  const getPayment = () => (runtimePayment ||= createPaymentService({ chain: createChainService() }));
+  const app = express();
+  app.disable("x-powered-by");
   const getControlledFailure = Object.hasOwn(dependencies, "controlledFailureConfig")
     ? () => dependencies.controlledFailureConfig
     : () => controlledFailureConfig();
 
-  return async function handler(req, res) {
-    if (req.method === "OPTIONS") return sendJson(res, 200, { ok: true });
-    if (req.method === "HEAD") {
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,POST,OPTIONS");
-      res.setHeader("Access-Control-Allow-Headers", "Content-Type, PAYMENT-SIGNATURE");
-      res.setHeader("Access-Control-Expose-Headers", "PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE");
-      res.status(200).end();
-      return;
+  let paymentGate;
+  let paymentConfigurationError;
+  try {
+    paymentGate = createPaymentGate(
+      dependencies.environment || process.env,
+      {
+        facilitatorClient: dependencies.facilitatorClient,
+        logger: dependencies.logger || console,
+      },
+    );
+  } catch (error) {
+    paymentConfigurationError = error;
+  }
+
+  app.use((request, response, next) => {
+    response.setHeader("Access-Control-Allow-Origin", "*");
+    response.setHeader("Access-Control-Allow-Methods", "GET,HEAD,POST,OPTIONS");
+    response.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, PAYMENT-SIGNATURE, X-PAYMENT",
+    );
+    response.setHeader(
+      "Access-Control-Expose-Headers",
+      "PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE",
+    );
+    response.setHeader("cache-control", "no-store");
+    next();
+  });
+  app.options(FOREMAN_SERVICE_PATH, (_request, response) => response.status(204).end());
+
+  function requirePayment(request, response, next) {
+    if (paymentGate) return paymentGate(request, response, next);
+    const error = paymentConfigurationError;
+    if (error && !(error instanceof PaymentConfigurationError)) {
+      (dependencies.logger || console).error("payment service configuration failed", {
+        name: error?.name,
+        code: error?.code,
+      });
     }
+    return response.status(503).json({
+      ok: false,
+      error: "payment_service_not_ready",
+      charged: false,
+    });
+  }
+
+  app.all(FOREMAN_SERVICE_PATH, requirePayment);
+  app.use(FOREMAN_SERVICE_PATH, express.json({ limit: "32kb", strict: true }));
+  app.all(FOREMAN_SERVICE_PATH, (req, res) => {
     if (req.method !== "GET" && req.method !== "POST") {
-      return sendJson(res, 405, { ok: false, error: "method_not_allowed" });
+      res.setHeader("allow", "POST");
+      return res.status(405).json({ ok: false, error: "method_not_allowed", charged: false });
+    }
+    if (req.method === "GET") {
+      res.setHeader("allow", "POST");
+      return res.status(405).json({ ok: false, error: "method_not_allowed", charged: false });
     }
 
-    const rawInput = req.method === "POST" ? req.body : req.query;
+    const rawInput = req.body;
     const input = readInput(rawInput);
     const inputErrors = validateInput(input);
-    if (req.method === "POST" && inputErrors.length > 0) {
-      return sendJson(res, 400, {
+    if (inputErrors.length > 0) {
+      return res.status(400).json({
         ok: false,
         error: "insufficient_project_context",
         details: inputErrors,
         charged: false,
       });
     }
-
-    const rawPayment = header(req, "payment-signature");
-    if (!rawPayment) return paymentRequired(req, res);
 
     const failureRequest = readControlledFailure(rawInput);
     let failureAuthorization = { requested: false, authorized: false };
@@ -394,67 +393,42 @@ export function createHandler(dependencies = {}) {
           config: failureConfig,
         });
       } catch {
-        return sendJson(res, 503, {
+        return res.status(503).json({
           ok: false,
           error: "controlled_failure_configuration_invalid",
           charged: false,
         });
       }
       if (!failureAuthorization.authorized) {
-        return sendJson(res, 403, {
+        return res.status(403).json({
           ok: false,
           error: failureAuthorization.reason,
           charged: false,
         });
       }
-    }
-
-    if (inputErrors.length > 0) {
-      return sendJson(res, 400, {
-        ok: false,
-        error: "insufficient_project_context",
-        details: inputErrors,
-        charged: false,
-      });
-    }
-
-    const requirements = paymentRequirements();
-    let verified;
-    let payment;
-    try {
-      payment = getPayment();
-      verified = await payment.verify(rawPayment, requirements);
-    } catch (error) {
-      if (error instanceof PaymentConfigurationError) {
-        return sendJson(res, 503, { ok: false, error: "payment_service_not_ready", charged: false });
+      let verified;
+      try {
+        verified = captureVerifiedPaymentRequest(req);
+      } catch (error) {
+        return res.status(422).json({
+          ok: false,
+          error: error?.code || "payment_authorization_mismatch",
+          charged: false,
+        });
       }
-      return paymentRequired(req, res, error instanceof PaymentVerificationError ? error.code : "payment_verification_failed");
-    }
-
-    if (
-      failureAuthorization.authorized
-      && !payerMatchesControlledFailure(verified.payer, failureConfig)
-    ) {
-      return sendJson(res, 403, {
+      if (!payerMatchesControlledFailure(verified.payer, failureConfig)) {
+        return res.status(403).json({
+          ok: false,
+          error: "controlled_failure_payer_mismatch",
+          charged: false,
+        });
+      }
+      // The official SDK settles only successful handler responses. This 2xx
+      // body remains withheld until the authorized controlled-failure payment
+      // settles; every rejected or malformed pilot request stays uncharged.
+      return res.status(200).json({
         ok: false,
-        error: "controlled_failure_payer_mismatch",
-        charged: false,
-      });
-    }
-
-    const result = buildPack(input);
-    let settlement;
-    try {
-      settlement = await payment.settle(verified, requirements);
-    } catch (error) {
-      return paymentRequired(req, res, error instanceof PaymentVerificationError ? error.code : "payment_settlement_failed");
-    }
-
-    res.setHeader("PAYMENT-RESPONSE", settlement.responseHeader);
-    res.setHeader("X-PAYMENT-RESPONSE", settlement.responseHeader);
-    if (failureAuthorization.authorized) {
-      return sendJson(res, 409, {
-        ok: false,
+        status: "controlled_provider_non_delivery",
         error: "controlled_provider_non_delivery",
         charged: true,
         pilot: {
@@ -464,15 +438,13 @@ export function createHandler(dependencies = {}) {
         },
         servicePayment: {
           settled: true,
-          network: settlement.network,
-          transaction: settlement.transaction,
-          payer: settlement.payer,
-          amountAtomic: settlement.amount,
-          transfer: settlement.transfer,
+          proofHeader: "PAYMENT-RESPONSE",
         },
       });
     }
-    return sendJson(res, 200, {
+
+    const result = buildPack(input);
+    return res.status(200).json({
       ok: true,
       agent: "Foreman",
       service: "Launch Readiness Pack",
@@ -482,14 +454,27 @@ export function createHandler(dependencies = {}) {
       result,
       servicePayment: {
         settled: true,
-        network: settlement.network,
-        transaction: settlement.transaction,
-        payer: settlement.payer,
-        amountAtomic: settlement.amount,
-        transfer: settlement.transfer,
+        proofHeader: "PAYMENT-RESPONSE",
       },
     });
-  };
+  });
+
+  app.use((error, _request, response, _next) => {
+    if (response.headersSent) return;
+    if (error?.type === "entity.too.large") {
+      return response.status(413).json({ ok: false, error: "payload_too_large", charged: false });
+    }
+    if (error?.type === "entity.parse.failed") {
+      return response.status(400).json({ ok: false, error: "invalid_json", charged: false });
+    }
+    (dependencies.logger || console).error("Foreman request failed", {
+      name: error?.name,
+      code: error?.code,
+    });
+    return response.status(500).json({ ok: false, error: "internal_error", charged: false });
+  });
+
+  return app;
 }
 
 export default createHandler();

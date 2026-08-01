@@ -5,6 +5,8 @@ node_modules/
 dist/
 .agents/
 .venv/
+__pycache__/
+*.py[cod]
 
 # Customer and generated media stay local unless explicitly approved.
 data/deliveries/**
