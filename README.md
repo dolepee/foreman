@@ -25,6 +25,8 @@ The warranty reserve address is added only after it is actually funded.
 
 ```bash
 npm run typecheck
+npm run test
+npm run gate
 npm run agent:verify
 npm run build
 npm run lint
@@ -34,6 +36,12 @@ npm run sample:all
 
 `sample:all` validates the sample order, generates a 90-second demo shotlist, creates a Launch Readiness Pack, verifies its hashes and receipt, and builds the public service page.
 
+## Payment Integration
+
+The fixed-price A2MCP endpoint uses the official OKX seller SDK packages (`@okxweb3/x402-core`, `@okxweb3/x402-evm`, and `@okxweb3/x402-express`). Production requires `OKX_API_KEY`, `OKX_SECRET_KEY`, and `OKX_PASSPHRASE`; their values must never be committed or logged.
+
+An unpaid request receives a compact `402` challenge with a machine-readable input schema and a concrete example. The detailed request is validated after payment verification but before settlement, so incomplete paid replays are rejected without charging. A successful response is released only after settlement and carries the canonical `PAYMENT-RESPONSE` proof header.
+
 ## Current Status
 
-This repo is in 24-hour validation-spike mode. The OKX.AI A2A listing, paid order receipts, customer reviews, funded warranty reserve, and any subcontracted ASP payment must be added only after they are real.
+Foreman is an OKX.AI A2MCP service. Marketplace listing state, paid receipts, customer reviews, warranty funding, and subcontracted payments are claimed only when independently observable.
