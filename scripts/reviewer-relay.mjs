@@ -34,10 +34,6 @@ export const RELAY_ROUTES = Object.freeze({
     agent: "policypool",
     upstream: "https://policypool.vercel.app/api/provider-relay",
   }),
-  "/policypool/agent-avatar-v2.png": Object.freeze({
-    agent: "policypool",
-    upstream: "https://policypool.vercel.app/agent-avatar-v2.png",
-  }),
   "/conviction/api/service": Object.freeze({
     agent: "conviction",
     upstream: "https://conviction-bay.vercel.app/api/service?reviewerRelay=1",

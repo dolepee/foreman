@@ -253,7 +253,6 @@ assert.deepEqual(Object.keys(RELAY_ROUTES).sort(), [
   "/conviction/llms.txt",
   "/conviction/openapi.json",
   "/foreman/api/launch-readiness-pack",
-  "/policypool/agent-avatar-v2.png",
   "/policypool/api/coverage-ledger",
   "/policypool/api/coverage-preflight",
   "/policypool/api/coverage-status",
@@ -593,6 +592,14 @@ try {
     { method: "GET" },
   );
   assert.equal(policyPoolHealth.status, 200);
+  assert.deepEqual(JSON.parse(policyPoolHealth.body), {
+    ok: true,
+    agent: "policypool",
+    routes: [
+      "/policypool/api/coverage-status",
+      "/policypool/api/covered-job-receipt",
+    ],
+  });
 } finally {
   await new Promise((resolve) => queryRelayServer.close(resolve));
 }
