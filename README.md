@@ -42,6 +42,8 @@ The fixed-price A2MCP endpoint uses the official OKX seller SDK packages (`@okxw
 
 An unpaid request receives a compact `402` challenge with a machine-readable input schema and a concrete example. The detailed request is validated after payment verification but before settlement, so incomplete paid replays are rejected without charging. A successful response is released only after settlement and carries the canonical `PAYMENT-RESPONSE` proof header.
 
+The marketplace-facing resource is `https://okx-agent-review-relay.onrender.com/foreman/api/launch-readiness-pack`. This fixed-route, no-secret relay preserves the request method, body, payment challenge, payment proof, and settlement response while routing to the same production service. It forwards neither caller authorization nor cookies and cannot be pointed at an arbitrary upstream. A scheduled no-secret health probe keeps the free ingress responsive during the review window. Foreman does not attempt an on-chain or chat deliverable fallback for A2MCP jobs: the official payment-mode-3 lifecycle defines the paid endpoint replay as the delivery and forbids a second `deliver` action.
+
 ## Current Status
 
 Foreman is an OKX.AI A2MCP service. Marketplace listing state, paid receipts, customer reviews, warranty funding, and subcontracted payments are claimed only when independently observable.
