@@ -1,0 +1,29 @@
+name: reviewer relay keep-warm
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reviewer-relay-keep-warm
+  cancel-in-progress: true
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Keep the no-secret reviewer ingress responsive
+        run: >-
+          curl --fail-with-body --silent --show-error
+          --max-time 75 --retry 2 --retry-all-errors
+          https://okx-agent-review-relay.onrender.com/health
+      - name: Keep the canonical Conviction reviewer path responsive
+        run: >-
+          curl --fail-with-body --silent --show-error
+          --max-time 75 --retry 2 --retry-all-errors
+          https://okx-agent-review-relay.onrender.com/conviction/api/health

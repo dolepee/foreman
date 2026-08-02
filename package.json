@@ -16,7 +16,8 @@
     "delivery:pack": "node scripts/generate-delivery-pack.mjs data/orders/sample-order.json data/deliveries/sample/shotlist.json",
     "delivery:verify": "node scripts/verify-delivery.mjs data/deliveries/sample/receipt.json",
     "proof:verify": "node scripts/verify-receipts.mjs",
-    "sample:all": "npm run order:validate && npm run shotlist:sample && npm run delivery:pack && npm run delivery:verify && npm run proof:verify && npm run build"
+    "sample:all": "npm run order:validate && npm run shotlist:sample && npm run delivery:pack && npm run delivery:verify && npm run proof:verify && npm run build",
+    "reviewer:relay": "node scripts/reviewer-relay.mjs"
   },
   "engines": {
     "node": "24.x"

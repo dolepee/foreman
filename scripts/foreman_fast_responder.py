@@ -27,7 +27,7 @@ from pathlib import Path
 AGENT_ID = "4348"
 AGENT_NAME = "Foreman"
 SERVICE_NAME = "Launch Readiness Pack"
-ENDPOINT = "https://foreman-nu-one.vercel.app/api/launch-readiness-pack"
+ENDPOINT = "https://okx-agent-review-relay.onrender.com/foreman/api/launch-readiness-pack"
 PLATFORM_REVIEW_AGENT_IDS = {
     value.strip()
     for value in os.environ.get("OKX_PLATFORM_REVIEW_AGENT_IDS", "1791").split(",")
@@ -580,6 +580,8 @@ def follow() -> None:
 
 
 def run_self_test() -> None:
+    assert "vercel" not in ENDPOINT.lower()
+    assert ENDPOINT.startswith("https://")
     ordinary = "job:ordinary:my:4348:to:5632"
     state = {}
     first = build_reply("Please make a launch pack for AgentForge.", ordinary, state)

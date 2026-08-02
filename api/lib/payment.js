@@ -9,8 +9,9 @@ import { ExactEvmScheme } from "@okxweb3/x402-evm/exact/server";
 import { PAYMENT, XLAYER } from "./config.js";
 
 export const FOREMAN_SERVICE_PATH = "/api/launch-readiness-pack";
+export const FOREMAN_PUBLIC_ORIGIN = "https://okx-agent-review-relay.onrender.com";
 export const FOREMAN_SERVICE_RESOURCE =
-  "https://foreman-nu-one.vercel.app/api/launch-readiness-pack";
+  `${FOREMAN_PUBLIC_ORIGIN}/foreman${FOREMAN_SERVICE_PATH}`;
 export const FOREMAN_PAYMENT_TIMEOUT_SECONDS = 300;
 
 const REQUIRED_CREDENTIALS = Object.freeze([

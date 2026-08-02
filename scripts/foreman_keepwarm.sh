@@ -4,7 +4,7 @@
 # a 5-minute HEAD cadence removes cold starts as a cause and logs evidence.
 set -u
 
-ENDPOINT="https://foreman-nu-one.vercel.app/api/launch-readiness-pack"
+ENDPOINT="https://okx-agent-review-relay.onrender.com/foreman/api/launch-readiness-pack"
 LOG="/Users/qdee/.okx-agent-task/logs/foreman-keepwarm.log"
 
 result=$(curl -sS -o /dev/null -I --max-time 20 \
