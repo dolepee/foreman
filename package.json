@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Foreman is the OKX.AI launch contractor for agent builders.",
   "scripts": {
+    "start": "npm run reviewer:relay",
     "typecheck": "node --check api/*.js && node --check api/lib/*.js && node --check scripts/*.mjs && python3 -m py_compile scripts/foreman_fast_responder.py",
     "test": "node scripts/verify-agent-api.mjs",
     "agent:verify": "npm test && python3 scripts/foreman_fast_responder.py --self-test",

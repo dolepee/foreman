@@ -1,7 +1,32 @@
 import http from "node:http";
 import { pathToFileURL } from "node:url";
 
-export const RELAY_HOST = "okx-agent-review-relay.onrender.com";
+const DEFAULT_RELAY_HOST = "okx-agent-review-relay.onrender.com";
+
+export function resolveRelayHost(value = process.env.RELAY_PUBLIC_HOST) {
+  const candidate = value || DEFAULT_RELAY_HOST;
+  if (
+    typeof candidate !== "string" ||
+    candidate.length > 253 ||
+    !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(candidate) ||
+    candidate.includes("..")
+  ) {
+    throw new TypeError("RELAY_PUBLIC_HOST must be one lowercase DNS hostname");
+  }
+  const parsed = new URL(`https://${candidate}`);
+  if (
+    parsed.hostname !== candidate ||
+    parsed.port ||
+    parsed.pathname !== "/" ||
+    parsed.search ||
+    parsed.hash
+  ) {
+    throw new TypeError("RELAY_PUBLIC_HOST must be one lowercase DNS hostname");
+  }
+  return candidate;
+}
+
+export const RELAY_HOST = resolveRelayHost();
 export const RELAY_UPSTREAM_TIMEOUT_MS = 120_000;
 export const RELAY_ROUTES = Object.freeze({
   "/foreman/api/launch-readiness-pack": Object.freeze({

@@ -22,6 +22,7 @@ import {
   RELAY_HOST,
   RELAY_ROUTES,
   RELAY_UPSTREAM_TIMEOUT_MS,
+  resolveRelayHost,
 } from "./reviewer-relay.mjs";
 
 const PAYER = "0x1111111111111111111111111111111111111111";
@@ -224,6 +225,26 @@ assert.equal(packageJson.dependencies["@okxweb3/x402-evm"], "0.2.1");
 assert.equal(packageJson.dependencies["@okxweb3/x402-express"], "0.1.1");
 assert.equal(packageJson.dependencies["@x402/core"], undefined);
 assert.equal(packageJson.dependencies["@x402/evm"], undefined);
+assert.equal(packageJson.scripts.start, "npm run reviewer:relay");
+assert.equal(resolveRelayHost(), "okx-agent-review-relay.onrender.com");
+assert.equal(
+  resolveRelayHost("okx-agent-review-relay-production.up.railway.app"),
+  "okx-agent-review-relay-production.up.railway.app",
+);
+for (const invalidRelayHost of [
+  "https://example.com",
+  "EXAMPLE.com",
+  "example.com/path",
+  "example.com:443",
+  "example..com",
+  ".example.com",
+  "example.com.",
+]) {
+  assert.throws(
+    () => resolveRelayHost(invalidRelayHost),
+    /lowercase DNS hostname/,
+  );
+}
 assert.equal(FOREMAN_PUBLIC_ORIGIN, `https://${RELAY_HOST}`);
 assert.equal(
   RELAY_UPSTREAM_TIMEOUT_MS,
