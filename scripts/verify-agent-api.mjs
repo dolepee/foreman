@@ -288,6 +288,10 @@ assert.equal(
   RELAY_ROUTES["/conviction/api/refresh"].upstream,
   "https://conviction-bay.vercel.app/api/refresh?reviewerRelay=1",
 );
+assert.equal(
+  RELAY_ROUTES["/conviction/api/readiness"].upstream,
+  "https://conviction-bay.vercel.app/api/readiness?reviewerRelay=1",
+);
 assert.deepEqual(
   RELAY_ROUTES["/conviction/api/receipt"].queryKeys,
   ["proofType"],

@@ -81,7 +81,7 @@ export const RELAY_ROUTES = Object.freeze({
   }),
   "/conviction/api/readiness": Object.freeze({
     agent: "conviction",
-    upstream: "https://conviction-bay.vercel.app/api/readiness",
+    upstream: "https://conviction-bay.vercel.app/api/readiness?reviewerRelay=1",
   }),
   "/conviction/api/preview": Object.freeze({
     agent: "conviction",
