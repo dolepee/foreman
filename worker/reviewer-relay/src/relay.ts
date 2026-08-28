@@ -337,7 +337,8 @@ export function createRelayHandler(
       if (responseExposesBlockedUpstream(upstream, responseBody)) {
         return relayFailure("upstream_response_not_reviewer_safe", paidReplayForwarded);
       }
-      return new Response(request.method === "HEAD" ? null : responseBody, {
+      const bodylessResponse = request.method === "HEAD" || [101, 204, 205, 304].includes(upstream.status);
+      return new Response(bodylessResponse ? null : responseBody, {
         status: upstream.status,
         headers: responseHeaders(upstream, route.agent, requestId),
       });

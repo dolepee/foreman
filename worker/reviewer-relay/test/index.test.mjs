@@ -84,3 +84,15 @@ test("upstream redirects never escape the pinned relay", async () => {
   assert.equal(response.status, 502);
   assert.equal((await response.json()).error, "upstream_unavailable");
 });
+
+test("bodyless upstream statuses remain bodyless instead of becoming relay failures", async () => {
+  const relay = createRelayHandler(async () => new Response(null, {
+    status: 204,
+    headers: { "access-control-allow-origin": "*" },
+  }));
+  const response = await relay(new Request("https://relay.example/foreman/api/launch-readiness-pack", {
+    method: "OPTIONS",
+  }));
+  assert.equal(response.status, 204);
+  assert.equal(await response.text(), "");
+});
