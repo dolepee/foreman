@@ -27,7 +27,7 @@ from pathlib import Path
 AGENT_ID = "4348"
 AGENT_NAME = "Foreman"
 SERVICE_NAME = "Launch Readiness Pack"
-ENDPOINT = "https://okx-agent-review-relay.onrender.com/foreman/api/launch-readiness-pack"
+ENDPOINT = "https://okx-agent-review-relay.qdworld001.workers.dev/foreman/api/launch-readiness-pack"
 PLATFORM_REVIEW_AGENT_IDS = {
     value.strip()
     for value in os.environ.get("OKX_PLATFORM_REVIEW_AGENT_IDS", "1791").split(",")

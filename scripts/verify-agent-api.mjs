@@ -217,7 +217,7 @@ const reviewerKeepWarmWorkflow = await readFile(
 );
 assert.match(
   reviewerKeepWarmWorkflow,
-  /https:\/\/okx-agent-review-relay\.onrender\.com\/conviction\/api\/health/,
+  /https:\/\/okx-agent-review-relay\.qdworld001\.workers\.dev\/conviction\/api\/health/,
   "the review-window keep-warm must cover Conviction through the canonical relay",
 );
 assert.equal(packageJson.dependencies["@okxweb3/x402-core"], "0.1.0");
@@ -226,7 +226,7 @@ assert.equal(packageJson.dependencies["@okxweb3/x402-express"], "0.1.1");
 assert.equal(packageJson.dependencies["@x402/core"], undefined);
 assert.equal(packageJson.dependencies["@x402/evm"], undefined);
 assert.equal(packageJson.scripts.start, "npm run reviewer:relay");
-assert.equal(resolveRelayHost(), "okx-agent-review-relay.onrender.com");
+assert.equal(resolveRelayHost(), "okx-agent-review-relay.qdworld001.workers.dev");
 assert.equal(
   resolveRelayHost("okx-agent-review-relay-production.up.railway.app"),
   "okx-agent-review-relay-production.up.railway.app",

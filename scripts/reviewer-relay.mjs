@@ -1,7 +1,7 @@
 import http from "node:http";
 import { pathToFileURL } from "node:url";
 
-const DEFAULT_RELAY_HOST = "okx-agent-review-relay.onrender.com";
+const DEFAULT_RELAY_HOST = "okx-agent-review-relay.qdworld001.workers.dev";
 
 export function resolveRelayHost(value = process.env.RELAY_PUBLIC_HOST) {
   const candidate = value || DEFAULT_RELAY_HOST;
